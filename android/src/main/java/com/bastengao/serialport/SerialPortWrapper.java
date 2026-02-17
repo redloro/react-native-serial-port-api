@@ -9,12 +9,14 @@ import com.facebook.react.bridge.WritableMap;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
+import java.io.ByteArrayOutputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
 public class SerialPortWrapper {
     public final static String DataReceivedEvent = "dataReceived";
+    private static final int IDLE_TIMEOUT_MS = 50;
+    private static final int READ_TIMEOUT_MS = 10;
 
     private SerialPort serialPort;
     private EventSender sender;
@@ -37,21 +39,45 @@ public class SerialPortWrapper {
         this.readThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                byte[] buffer = new byte[64];
+                long lastReadTime = 0;
+                byte[] chunk = new byte[1024];
+                ByteArrayOutputStream accumulator = new ByteArrayOutputStream();
+
                 while (!closed.get()) {
                     try {
-                        int size;
                         if (in == null) return;
-                        size = in.read(buffer);
-                        if (size > 0) {
-                            WritableMap event = Arguments.createMap();
-                            String hex = SerialPortApiModule.bytesToHex(buffer, size);
-                            event.putString("data", hex);
-                            event.putString("path", path);
-                            sender.sendEvent(DataReceivedEvent, event);
+
+                        boolean dataAvailable = in.available() > 0;
+
+                        if (dataAvailable) {
+                            int size = in.read(chunk);
+                            if (size > 0) {
+                                accumulator.write(chunk, 0, size);
+                                lastReadTime = System.currentTimeMillis();
+                            }
+                        } else if (accumulator.size() > 0) {
+                            long elapsed = System.currentTimeMillis() - lastReadTime;
+                            if (elapsed >= IDLE_TIMEOUT_MS) {
+                                byte[] buffer = accumulator.toByteArray();
+                                accumulator.reset();
+
+                                WritableMap event = Arguments.createMap();
+                                String hex = SerialPortApiModule.bytesToHex(buffer, buffer.length);
+                                event.putString("data", hex);
+                                event.putString("path", path);
+                                sender.sendEvent(DataReceivedEvent, event);
+                            } else {
+                                Thread.sleep(READ_TIMEOUT_MS);
+                            }
+                        } else {
+                            Thread.sleep(READ_TIMEOUT_MS);
                         }
+
                     } catch (IOException e) {
                         e.printStackTrace();
+                        return;
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
                         return;
                     }
                 }
@@ -68,14 +94,14 @@ public class SerialPortWrapper {
 
     public void write(byte[] buffer) throws IOException {
         this.out.write(buffer);
-
     }
 
     public void close() {
-        closed.set(true);
+        this.closed.set(true);
+        this.readThread.interrupt();
         try {
-            in.close();
-            out.close();
+            this.in.close();
+            this.out.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
