@@ -29,20 +29,22 @@ public class SerialPortWrapper {
     private int chunkSize;
     private int timeoutMs;
     private int sleepMs;
-    private Byte delimiter;
+    private boolean useDelimiter;
+    private byte delimiter;
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     public SerialPortWrapper(String path, SerialPort serialPort, 
-                            Integer chunkSize, Integer timeoutMs, Integer sleepMs, Byte delimiter, 
+                            int chunkSize, int timeoutMs, int sleepMs, boolean useDelimiter, byte delimiter, 
                             final EventSender sender, Remover remover) {
         this.path = path;
         this.serialPort = serialPort;
         this.sender = sender;
         this.remover = remover;
-        this.chunkSize = (chunkSize != null && chunkSize > 0) ? chunkSize : DEFAULT_CHUNK_SIZE;
-        this.timeoutMs = (timeoutMs != null && timeoutMs >= 0) ? timeoutMs : DEFAULT_IDLE_TIMEOUT_MS;
-        this.sleepMs = (sleepMs != null && sleepMs >= 0) ? sleepMs : DEFAULT_READ_TIMEOUT_MS;
+        this.chunkSize = (chunkSize > 0) ? chunkSize : DEFAULT_CHUNK_SIZE;
+        this.timeoutMs = (timeoutMs >= 0) ? timeoutMs : DEFAULT_IDLE_TIMEOUT_MS;
+        this.sleepMs = (sleepMs >= 0) ? sleepMs : DEFAULT_READ_TIMEOUT_MS;
+        this.useDelimiter = useDelimiter;
         this.delimiter = delimiter;
         this.out = this.serialPort.getOutputStream();
         this.in = this.serialPort.getInputStream();
@@ -50,7 +52,7 @@ public class SerialPortWrapper {
         this.readThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                if (delimiter != null) {
+                if (useDelimiter) {
                     runDelimiterBasedRead();
                 } else {
                     runTimeoutBasedRead();

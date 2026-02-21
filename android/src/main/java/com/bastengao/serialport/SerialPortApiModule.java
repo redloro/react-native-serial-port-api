@@ -65,8 +65,8 @@ public class SerialPortApiModule extends ReactContextBaseJavaModule implements E
     }
 
     @ReactMethod
-    public void open(final String path, Integer baudRate, Integer parity, Integer dataBits, Integer stopBits, 
-                    Integer chunkSize, Integer timeoutMs, Integer sleepMs, Byte delimiter,
+    public void open(final String path, int baudRate, int parity, int dataBits, int stopBits, 
+                    int chunkSize, int timeoutMs, int sleepMs, boolean useDelimiter, byte delimiter,
                     Promise promise) {
 
         if (serialPorts.containsKey(path)) {
@@ -88,7 +88,7 @@ public class SerialPortApiModule extends ReactContextBaseJavaModule implements E
                     .stopBits(stopBits)
                     .build();
 
-            SerialPortWrapper wrapper = new SerialPortWrapper(path, serialPort, chunkSize, timeoutMs, sleepMs, delimiter, this, remover);
+            SerialPortWrapper wrapper = new SerialPortWrapper(path, serialPort, chunkSize, timeoutMs, sleepMs, useDelimiter, delimiter, this, remover);
             serialPorts.put(path, wrapper);
             promise.resolve(wrapper.toJS());
         } catch (IOException e) {
