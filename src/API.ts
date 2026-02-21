@@ -77,9 +77,10 @@ export default class API {
    * @param {openOptions} options
    * @returns {Promise<SerialPort>} connected serial port
    */
-  static open(devicePath: string, {baudRate, parity = 0, dataBits = 8, stopBits = 1}: { baudRate: number, parity?: number, dataBits?: number, stopBits?: number }): Promise<SerialPort> {
+  static open(devicePath: string, 
+    {baudRate, parity = 0, dataBits = 8, stopBits = 1, chunkSize = null, timeoutMs = null, sleepMs = null, delimiter = null}: { baudRate: number, parity?: number, dataBits?: number, stopBits?: number, chunkSize?: number | null, timeoutMs?: number | null, sleepMs?: number | null, delimiter?: number | null }) {
     if (Platform.OS !== 'android') throw new Error(`Not support ${Platform.OS}`)
-    return SerialPortAPI.open(devicePath, baudRate, parity, dataBits, stopBits)
+    return SerialPortAPI.open(devicePath, baudRate, parity, dataBits, stopBits, chunkSize, timeoutMs, sleepMs, delimiter)
       .then((serialPort: SerialPortWrapper) => {
         return Promise.resolve(new SerialPort(serialPort, eventEmitter!));
       })
