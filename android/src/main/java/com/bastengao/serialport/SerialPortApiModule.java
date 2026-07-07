@@ -131,6 +131,16 @@ public class SerialPortApiModule extends ReactContextBaseJavaModule implements E
         promise.resolve(true);
     }
 
+    @ReactMethod
+    public void addListener(String eventName) {
+        // Required by NativeEventEmitter (RN warns if missing)
+    }
+
+    @ReactMethod
+    public void removeListeners(Integer count) {
+        // Required by NativeEventEmitter (RN warns if missing)
+    }
+
     public void sendEvent(final String eventName, final WritableMap event) {
         reactContext.runOnUiQueueThread(new Runnable() {
             @Override
